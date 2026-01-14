@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Big Counter</title>
+  <style>
+    :root{
+      --bg: #a57642;        /* YOUR THEME COLOR */
+      --fg: #ffffff;
+      --muted: rgba(255,255,255,.75);
+      --btn: rgba(255,255,255,.18);
+      --btn2: rgba(255,255,255,.28);
+      --accent: #fff1d6;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .wrap{
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    /* 🔢 BIG NUMBER (2× BIGGER) */
+    .number{
+      font-weight: 900;
+      font-size: min(30vw, 30vh);
+      letter-spacing: 0.04em;
+      line-height: 1;
+      text-align: center;
+    }
+
+    .controls{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      width: min(520px, 100%);
+    }
+
+    button{
+      appearance: none;
+      border: 2px solid rgba(255,255,255,.35);
+      background: var(--btn);
+      color: var(--fg);
+      font-size: 28px;
+      font-weight: 800;
+      padding: 22px 16px;
+      border-radius: 22px;
+      cursor: pointer;
+      transition: transform .04s ease, background .15s ease;
+    }
+
+    button:active{
+      transform: scale(.97);
+      background: var(--btn2);
+    }
+
+    .row2{
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      width: min(520px, 100%);
+    }
+
+    .small{
+      font-size: 18px;
+      padding: 16px 14px;
+    }
+
+    .hint{
+      font-size: 14px;
+      color: var(--muted);
+      text-align: center;
+      max-width: 520px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div id="num" class="number">0</div>
+
+    <div class="controls">
+      <button onclick="change(-step)">−</button>
+      <button onclick="change(step)">+</button>
+    </div>
+
+    <div class="row2">
+      <button class="small" onclick="change(-10)">−10</button>
+      <button class="small" onclick="setZero()">Reset</button>
+      <button class="small" onclick="change(10)">+10</button>
+    </div>
+
+    <div class="hint">
+      Tap the number to hide controls • + / − works instantly • Designed for TV display
+    </div>
+  </div>
+
+  <script>
+  let value = 0;
+  let step = 1;
+  const numEl = document.getElementById('num');
+
+  function render() {
+    numEl.textContent = value;
+  }
+
+  function change(n) {
+    value += n;
+    render();
+  }
+
+  function setZero() {
+    value = 0;
+    render();
+  }
+
+  // Tap number to hide/show controls (clean TV look)
+  let hidden = false;
+  numEl.addEventListener('click', () => {
+    hidden = !hidden;
+    document.querySelector('.controls').style.display = hidden ? 'none' : 'grid';
+    document.querySelector('.row2').style.display = hidden ? 'none' : 'grid';
+  });
+
+  // ✅ Keyboard support: + / - (including numpad)
+  document.addEventListener('keydown', (e) => {
+    // Avoid interfering with typing in inputs (if you add any later)
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+    if (tag === "input" || tag === "textarea") return;
+
+    // Stop browser zoom shortcuts
+    if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "-" || e.key === "=")) {
+      e.preventDefault();
+      return;
+    }
+
+    // "+" can be Shift+"=" on many keyboards
+    const isPlus = (e.key === "+" || e.key === "=" || e.code === "NumpadAdd");
+    const isMinus = (e.key === "-" || e.key === "−" || e.code === "NumpadSubtract");
+
+    if (isPlus) {
+      e.preventDefault();
+      change(step);
+    } else if (isMinus) {
+      e.preventDefault();
+      change(-step);
+    } else if (e.key === "0") {
+      setZero();
+    }
+  });
+
+  render();
+</script>
+
+</body>
+</html>
