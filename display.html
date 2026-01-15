@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clinic Counter - Display</title>
+  <style>
+    :root { --bg:#a57642; --fg:#fff; }
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui;-webkit-tap-highlight-color:transparent;}
+    .wrap{height:100%;display:flex;align-items:center;justify-content:center;}
+    .number{
+      font-weight:900;
+      font-size: min(55vw, 55vh); /* TV-safe */
+      letter-spacing: 0.04em;
+      line-height: 1;
+      text-align:center;
+      user-select:none;
+    }
+    .roomtag{
+      position:fixed;left:18px;bottom:14px;opacity:.75;font-size:14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap"><div id="num" class="number">0</div></div>
+  <div class="roomtag" id="roomtag"></div>
+
+  <script type="module">
+    // 1) Choose a room name (same on all devices)
+    const ROOM_ID = new URL(location.href).searchParams.get("room") || "main";
+    document.getElementById("roomtag").textContent = `room: ${ROOM_ID}`;
+
+    // 2) Firebase imports (Realtime Database)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+    // 3) TODO: Paste your Firebase config here (from Firebase Console → Project settings)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const numEl = document.getElementById("num");
+
+    // Listen for changes
+    const valueRef = ref(db, `rooms/${ROOM_ID}/value`);
+    onValue(valueRef, (snap) => {
+      const v = snap.exists() ? snap.val() : 0;
+      numEl.textContent = String(v);
+    });
+  </script>
+</body>
+</html>
