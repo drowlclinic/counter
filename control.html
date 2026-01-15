@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Clinic Counter - Control</title>
   <style>
-    :root{
-      --bg:#a57642; --fg:#fff; --btn:rgba(255,255,255,.18); --btn2:rgba(255,255,255,.28);
-    }
+    :root{ --bg:#a57642; --fg:#fff; --btn:rgba(255,255,255,.18); --btn2:rgba(255,255,255,.28); }
     html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui;user-select:none;-webkit-tap-highlight-color:transparent;}
     .wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:18px;box-sizing:border-box;}
     .number{font-weight:900;font-size:min(28vw, 22vh);line-height:1;letter-spacing:.04em;}
@@ -15,8 +13,10 @@
     .row2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;width:min(520px,100%);}
     button{appearance:none;border:2px solid rgba(255,255,255,.35);background:var(--btn);color:var(--fg);font-size:28px;font-weight:800;padding:20px 16px;border-radius:20px;cursor:pointer;}
     button:active{background:var(--btn2);transform:scale(.98);}
+    button:disabled{opacity:.45;cursor:not-allowed;}
     .small{font-size:18px;padding:14px 12px;}
-    .meta{opacity:.75;font-size:14px;}
+    .meta{opacity:.85;font-size:14px;text-align:center;max-width:520px;line-height:1.35}
+    .err{opacity:1;color:#fff; background: rgba(0,0,0,.18); padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.25)}
   </style>
 </head>
 <body>
@@ -24,72 +24,91 @@
     <div id="num" class="number">0</div>
 
     <div class="controls">
-      <button id="minus">−</button>
-      <button id="plus">+</button>
+      <button id="minus" disabled>−</button>
+      <button id="plus" disabled>+</button>
     </div>
 
     <div class="row2">
-      <button class="small" id="minus10">−10</button>
-      <button class="small" id="reset">Reset</button>
-      <button class="small" id="plus10">+10</button>
+      <button class="small" id="minus10" disabled>−10</button>
+      <button class="small" id="reset" disabled>Reset</button>
+      <button class="small" id="plus10" disabled>+10</button>
     </div>
 
     <div class="meta" id="meta"></div>
+    <div class="meta err" id="status">Status: loading…</div>
   </div>
 
   <script type="module">
     const ROOM_ID = new URL(location.href).searchParams.get("room") || "main";
-    document.getElementById("meta").textContent = `room: ${ROOM_ID}`;
+    const metaEl = document.getElementById("meta");
+    const statusEl = document.getElementById("status");
+    metaEl.textContent = `room: ${ROOM_ID}`;
 
+    const btnIds = ["minus","plus","minus10","plus10","reset"];
+    const setButtonsEnabled = (on) => btnIds.forEach(id => document.getElementById(id).disabled = !on);
+
+    const showStatus = (msg) => { statusEl.textContent = msg; };
+
+    // ✅ Firebase imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getDatabase, ref, onValue, runTransaction, set } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-    // TODO: Paste your Firebase config here
+    // ✅ TODO: Replace with YOUR real config (Firebase Console → Project settings → Web app)
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-      projectId: "YOUR_PROJECT",
-      appId: "YOUR_APP_ID"
+      apiKey: "PASTE_YOURS",
+      authDomain: "PASTE_YOURS",
+      databaseURL: "PASTE_YOURS",
+      projectId: "PASTE_YOURS",
+      appId: "PASTE_YOURS"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    try {
+      showStatus("Status: connecting…");
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
 
-    // Anonymous auth so writes are allowed by the rules
-    const auth = getAuth(app);
-    await signInAnonymously(auth);
+      // Anonymous auth (required if your DB rules use auth != null)
+      const auth = getAuth(app);
+      await signInAnonymously(auth);
 
-    const numEl = document.getElementById("num");
-    const valueRef = ref(db, `rooms/${ROOM_ID}/value`);
+      const numEl = document.getElementById("num");
+      const valueRef = ref(db, `rooms/${ROOM_ID}/value`);
 
-    onValue(valueRef, (snap) => {
-      const v = snap.exists() ? snap.val() : 0;
-      numEl.textContent = String(v);
-    });
-
-    async function change(delta){
-      await runTransaction(valueRef, (current) => {
-        const v = (typeof current === "number") ? current : 0;
-        return v + delta;
+      onValue(valueRef, (snap) => {
+        const v = snap.exists() ? snap.val() : 0;
+        numEl.textContent = String(v);
       });
+
+      async function change(delta){
+        await runTransaction(valueRef, (current) => {
+          const v = (typeof current === "number") ? current : 0;
+          return v + delta;
+        });
+      }
+
+      document.getElementById("minus").onclick = () => change(-1);
+      document.getElementById("plus").onclick  = () => change(1);
+      document.getElementById("minus10").onclick = () => change(-10);
+      document.getElementById("plus10").onclick  = () => change(10);
+      document.getElementById("reset").onclick   = () => set(valueRef, 0);
+
+      // Optional keyboard support
+      document.addEventListener("keydown", (e) => {
+        const isPlus = (e.key === "+" || e.key === "=" || e.code === "NumpadAdd");
+        const isMinus = (e.key === "-" || e.key === "−" || e.code === "NumpadSubtract");
+        if (isPlus) { e.preventDefault(); change(1).catch(err => showStatus("Error: " + err.message)); }
+        if (isMinus){ e.preventDefault(); change(-1).catch(err => showStatus("Error: " + err.message)); }
+        if (e.key === "0") { e.preventDefault(); set(valueRef, 0).catch(err => showStatus("Error: " + err.message)); }
+      });
+
+      setButtonsEnabled(true);
+      showStatus("Status: ready ✅ (you can press + / −)");
+
+    } catch (err) {
+      setButtonsEnabled(false);
+      showStatus("Error: " + (err?.message || String(err)));
     }
-
-    document.getElementById("minus").onclick = () => change(-1);
-    document.getElementById("plus").onclick  = () => change(1);
-    document.getElementById("minus10").onclick = () => change(-10);
-    document.getElementById("plus10").onclick  = () => change(10);
-    document.getElementById("reset").onclick   = () => set(valueRef, 0);
-
-    // Keyboard + / - support (optional)
-    document.addEventListener("keydown", (e) => {
-      const isPlus = (e.key === "+" || e.key === "=" || e.code === "NumpadAdd");
-      const isMinus = (e.key === "-" || e.key === "−" || e.code === "NumpadSubtract");
-      if (isPlus) { e.preventDefault(); change(1); }
-      if (isMinus){ e.preventDefault(); change(-1); }
-      if (e.key === "0") { e.preventDefault(); set(valueRef, 0); }
-    });
   </script>
 </body>
 </html>
