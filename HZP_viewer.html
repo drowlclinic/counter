@@ -3,9 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mirror Number (View Only)</title>
+  <title>HZP Counter — Number Only</title>
+
   <style>
-    :root { --bg:#a57642; } /* your theme */
+    :root {
+      --bg: #a57642; /* clinic theme */
+    }
+
     html, body {
       height: 100%;
       margin: 0;
@@ -13,8 +17,8 @@
       overflow: hidden;
     }
 
-    /* Cropping window */
-    .frame {
+    /* === VIEWPORT MASK === */
+    .mask {
       position: fixed;
       inset: 0;
       overflow: hidden;
@@ -22,13 +26,15 @@
     }
 
     /*
-      We show ONLY the part of the embedded page where the big number is.
-      Adjust --scale / --x / --y to perfectly center the number on your TV.
+      Adjust these 3 values ONLY if needed:
+      - scale : zoom level
+      - x     : left/right shift
+      - y     : up/down shift (this hides + / −)
     */
-    .frame {
-      --scale: 2.6;   /* zoom in (bigger = more zoom) */
-      --x: 0px;       /* move left/right (positive moves right) */
-      --y: -120px;    /* move up/down (negative moves up) */
+    .mask {
+      --scale: 3.1;
+      --x: 0px;
+      --y: -220px; /* move UP to hide buttons */
     }
 
     iframe {
@@ -37,56 +43,21 @@
       left: 50%;
       width: 100vw;
       height: 100vh;
-      border: 0;
+      border: none;
+
       transform-origin: center;
       transform:
         translate(-50%, -50%)
         translate(var(--x), var(--y))
         scale(var(--scale));
-      background: transparent;
     }
   </style>
 </head>
+
 <body>
-  <div class="frame">
+  <div class="mask">
     <iframe
       src="https://alan10150927-ui.github.io/Happy-Zebra-Pharmacy/"
-      allow="autoplay; fullscreen"
+      loading="lazy"
+      allowfullscreen
       referrerpolicy="no-referrer"
-    ></iframe>
-  </div>
-
-  <script>
-    // Optional: press keys to fine-tune on a computer, then copy values into CSS above.
-    // Arrow keys move; +/- zoom.
-    const frame = document.querySelector('.frame');
-    function getVar(name){ return parseFloat(getComputedStyle(frame).getPropertyValue(name)) || 0; }
-    function setVar(name, val){ frame.style.setProperty(name, val + (name === '--scale' ? '' : 'px')); }
-
-    document.addEventListener('keydown', (e) => {
-      const step = e.shiftKey ? 30 : 10;
-
-      // read current
-      const style = getComputedStyle(frame);
-      let scale = parseFloat(style.getPropertyValue('--scale')) || 2.6;
-      let x = parseFloat(style.getPropertyValue('--x')) || 0;
-      let y = parseFloat(style.getPropertyValue('--y')) || -120;
-
-      if (e.key === 'ArrowLeft')  x -= step;
-      if (e.key === 'ArrowRight') x += step;
-      if (e.key === 'ArrowUp')    y -= step;
-      if (e.key === 'ArrowDown')  y += step;
-
-      if (e.key === '+' || e.key === '=' ) scale = Math.min(6, scale + 0.1);
-      if (e.key === '-' )                  scale = Math.max(1, scale - 0.1);
-
-      setVar('--x', x);
-      setVar('--y', y);
-      frame.style.setProperty('--scale', scale);
-
-      // Print tuning values in console (F12) if you want
-      // console.log({scale, x, y});
-    });
-  </script>
-</body>
-</html>
